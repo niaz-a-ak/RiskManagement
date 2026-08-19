@@ -35,7 +35,7 @@ async function runInvestigation(txnId) {
   document.getElementById("txn-search-input").value = txnId;
 
   // Clear UI elements
-  document.getElementById("terminal-content").innerText = "Connecting to Aegis AI Engine...";
+  document.getElementById("terminal-content").innerText = "Connecting to USBank Risk Management AI Engine...";
   
   try {
     const response = await fetch(`/api/investigate/${encodeURIComponent(txnId)}`);

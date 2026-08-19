@@ -1,5 +1,5 @@
 """
-Aegis AI - Bank Fraud Risk Investigation Engine
+USBank Risk Management AI - Bank Fraud Risk Investigation Engine
 Backend Server (app.py) using Flask, SQLite3, ChromaDB RAG, PyPDF, and Gemini/OpenAI integration.
 Uses US_Bank_Sample_Risk_Policy.pdf directly as the authoritative policy document.
 """
@@ -204,7 +204,7 @@ def generate_llm_summary(prompt, target_txn_id, risk_score):
             client = openai.OpenAI(api_key=openai_key)
             res = client.chat.completions.create(
                 model="gpt-4o-mini",
-                messages=[{"role": "system", "content": "You are Aegis AI, a Senior Fraud Investigation Agent grounding answers in U.S. Bank Fraud Risk Policy."},
+                messages=[{"role": "system", "content": "You are USBank Risk Management AI, a Senior Fraud Investigation Agent grounding answers in U.S. Bank Fraud Risk Policy."},
                           {"role": "user", "content": prompt}]
             )
             return res.choices[0].message.content
@@ -364,7 +364,7 @@ def investigate(transaction_id):
     
     # Execution Trace Logs
     trace = [
-        f"[AGENT INITIALIZATION] Initialized Aegis AI Fraud Engine for Transaction ID: {transaction_id}",
+        f"[AGENT INITIALIZATION] Initialized USBank Risk Management AI Fraud Engine for Transaction ID: {transaction_id}",
         f"[TOOL CALL] Executing SQLite query: SELECT * FROM transactions WHERE transaction_id = '{transaction_id}'",
         f"[TOOL CALL] Executing SQLite query: SELECT * FROM customer_profiles WHERE user_id = '{user_id}'",
         f"[TOOL CALL] Executing SQLite query: SELECT * FROM transactions WHERE user_id = '{user_id}'",
