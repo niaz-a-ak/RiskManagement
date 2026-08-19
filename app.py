@@ -7,6 +7,7 @@ Uses US_Bank_Sample_Risk_Policy.pdf directly as the authoritative policy documen
 import os
 import sqlite3
 import json
+from datetime import datetime
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request, send_from_directory
 import chromadb
@@ -212,35 +213,116 @@ def generate_llm_summary(prompt, target_txn_id, risk_score):
 
     print("[LLM] Using deterministic fallback; no successful provider response")
 
-    # 3. Deterministic Structured Fallback Generator (Grounded in US_Bank_Sample_Risk_Policy.pdf)
-    if target_txn_id == "TXN_99812":
-        return (
-            "EXECUTIVE SUMMARY: Risk score assessed at 88/100 (HIGH RISK). Transaction TXN_99812 for $1,450.00 "
-            "at Luxury Watch Vault in the UK presents immediate, critical fraud indicators grounded in US_Bank_Sample_Risk_Policy.pdf. "
-            "A physical card swipe in the UK occurred 60 minutes after an online transaction (TXN_998112) in the USA, "
-            "triggering Section 4.2 (Impossible Travel Velocity Policy). Furthermore, the transaction originated from a known Tor proxy IP "
-            "(185.220.101.4) exceeding the $500 threshold under Section 5.3 (Anonymizing Proxies). Under Section 7 & Section 8.1, "
-            "a risk score of 88 (High Risk Range 80-100) mandates Immediate Card Freeze and mandatory secondary fraud review."
-        )
-    elif target_txn_id == "TXN_99818":
-        return (
-            "EXECUTIVE SUMMARY: Risk score assessed at 88/100 (HIGH RISK). This international transaction uses an "
-            "anonymizing proxy and presents a significant spending anomaly. Under Sections 5.3 and 8.1, Immediate Card Freeze "
-            "and mandatory secondary fraud review are required."
-        )
-    elif target_txn_id in {"TXN_99815", "TXN_99817"}:
-        return (
-            f"EXECUTIVE SUMMARY: Risk score assessed at 58/100 (MEDIUM RISK). Transaction {target_txn_id} "
-            "contains indicators that require secondary fraud review, but does not meet the immediate card-freeze threshold."
-        )
+    # 3. Deterministic fallback grounded in the calculated score and policy.
+    if risk_score >= 80:
+        risk_level = "HIGH RISK"
+        action = "Immediate Card Freeze Required"
+    elif risk_score >= 40:
+        risk_level = "MEDIUM RISK"
+        action = "Secondary Fraud Review Required"
     else:
-        return (
-            "EXECUTIVE SUMMARY: Risk score assessed at 12/100 (LOW RISK). Transaction TXN_998112 for $42.00 at Amazon.com "
-            "in the USA aligns with standard customer spending habits under US_Bank_Sample_Risk_Policy.pdf. The purchase originated "
-            "from a verified residential IP (192.168.1.100), card-not-present online transaction, within average spending bounds ($85.00 avg). "
-            "Under Section 7, a score of 12 falls into the Low Risk range (0-39). No velocity anomalies or anonymizing proxy indicators detected. "
-            "Routine monitoring applies; no administrative action required."
-        )
+        risk_level = "LOW RISK"
+        action = "No Action Required - Normal Transaction"
+
+    return (
+        f"EXECUTIVE SUMMARY: Risk score assessed at {risk_score}/100 ({risk_level}). "
+        f"Transaction {target_txn_id} was evaluated against the transaction data, customer history, "
+        f"and US_Bank_Sample_Risk_Policy.pdf. Required action: {action}."
+    )
+
+
+def evaluate_transaction_risk(txn, customer, history):
+    """Calculate risk from transaction and customer data instead of its ID."""
+    score = 10
+    findings = []
+    average_amount = customer.get("avg_transaction_amt", 0) or 0
+    amount_ratio = txn["amount"] / average_amount if average_amount else 0
+
+    if amount_ratio >= 10:
+        score += 25
+        findings.append({
+            "title": "Extreme Spending Anomaly",
+            "severity": "HIGH",
+            "policy_tag": "Section 3.1",
+            "description": f"Transaction amount (${txn['amount']:.2f}) is {amount_ratio:.1f}x the customer's average transaction amount.",
+        })
+    elif amount_ratio >= 5:
+        score += 18
+        findings.append({
+            "title": "Significant Spending Anomaly",
+            "severity": "MEDIUM",
+            "policy_tag": "Section 3.1",
+            "description": f"Transaction amount (${txn['amount']:.2f}) is {amount_ratio:.1f}x the customer's average transaction amount.",
+        })
+    elif amount_ratio >= 2:
+        score += 10
+        findings.append({
+            "title": "Unusual Spending Amount",
+            "severity": "MEDIUM",
+            "policy_tag": "Section 3.1",
+            "description": f"Transaction amount (${txn['amount']:.2f}) is {amount_ratio:.1f}x the customer's average transaction amount.",
+        })
+
+    if txn["ip_is_proxy"]:
+        proxy_points = 30 if txn["amount"] > 500 else 15
+        score += proxy_points
+        findings.append({
+            "title": "Anonymizing Proxy IP Detected",
+            "severity": "HIGH" if txn["amount"] > 500 else "MEDIUM",
+            "policy_tag": "Section 5.3",
+            "description": f"Transaction originated from a proxy IP; amount ${txn['amount']:.2f} {'exceeds' if txn['amount'] > 500 else 'does not exceed'} the $500 policy threshold.",
+        })
+
+    if txn["location"] != customer.get("home_country"):
+        score += 10
+        findings.append({
+            "title": "International Transaction",
+            "severity": "MEDIUM",
+            "policy_tag": "Section 4.2",
+            "description": f"Transaction location ({txn['location']}) differs from the customer's home country ({customer.get('home_country')}).",
+        })
+
+    if txn["card_present"] == "no":
+        score += 5
+
+    current_time = datetime.fromisoformat(txn["timestamp"])
+    has_impossible_travel = any(
+        other["transaction_id"] != txn["transaction_id"]
+        and other["location"] != txn["location"]
+        and txn["card_present"] == "yes"
+        and other["card_present"] == "no"
+        and abs((current_time - datetime.fromisoformat(other["timestamp"])).total_seconds()) <= 7200
+        for other in history
+    )
+    if has_impossible_travel:
+        score += 70
+        findings.append({
+            "title": "Impossible Travel Velocity",
+            "severity": "CRITICAL",
+            "policy_tag": "Section 4.2",
+            "description": "A card-present transaction occurred in a different location within two hours of this transaction.",
+        })
+
+    risk_score = min(score, 100)
+    if risk_score >= 80:
+        risk_level = "High"
+        required_action = "Immediate Card Freeze Required"
+    elif risk_score >= 40:
+        risk_level = "Medium"
+        required_action = "Secondary Fraud Review Required"
+    else:
+        risk_level = "Low"
+        required_action = "No Action Required - Normal Transaction"
+
+    if not findings:
+        findings = [{
+            "title": "No Significant Risk Indicators",
+            "severity": "LOW",
+            "policy_tag": "Section 7",
+            "description": "The transaction is within normal spending and location patterns with no proxy indicator.",
+        }]
+
+    return risk_score, risk_level, required_action, findings
 
 # ==========================================
 # 4. API Endpoints
@@ -357,28 +439,8 @@ def investigate(transaction_id):
         }
     ]
 
-    high_alert_ids = {"TXN_99812", "TXN_99818"}
-    review_ids = {"TXN_99815", "TXN_99817"}
-
     if retrieved_citations:
         citations = retrieved_citations
-    elif transaction_id in high_alert_ids:
-        citations = default_citations_high
-    elif transaction_id in review_ids:
-        citations = [
-            {
-                "section": "Section 3.1",
-                "title": "Spending Anomaly Review",
-                "match_score": 86.2,
-                "text": "Transactions with unusual spending spikes require identity confirmation and behavioral risk evaluation.",
-            },
-            {
-                "section": "Section 5.3",
-                "title": "Anonymizing Proxies",
-                "match_score": 84.7,
-                "text": "Transactions from known proxy IPs require secondary fraud review and IP risk tagging.",
-            },
-        ]
     else:
         citations = default_citations_low
 
@@ -387,67 +449,10 @@ def investigate(transaction_id):
         
     trace.append(f"[LLM PROMPT] Assembling evidence context (DB records + RAG chunks from {PDF_PATH})...")
     
-    # Evaluate Risk Score & Findings
-    if transaction_id in high_alert_ids:
-        risk_score = 88
-        risk_level = "High"
-        required_action = "Immediate Card Freeze Required"
-        findings = [
-            {
-                "title": "Impossible Travel Velocity",
-                "severity": "CRITICAL",
-                "policy_tag": "Section 4.2",
-                "description": "Physical swipe in UK occurred within 60 minutes of online transaction (TXN_998112) in USA across different continents."
-            },
-            {
-                "title": "Anonymizing Proxy IP Detected",
-                "severity": "HIGH",
-                "policy_tag": "Section 5.3",
-                "description": "Transaction originated from Tor exit node IP (185.220.101.4). Amount ($1,450.00) exceeds $500 threshold."
-            },
-            {
-                "title": "High Risk Threshold & Action Rule",
-                "severity": "HIGH",
-                "policy_tag": "Section 8.1",
-                "description": "Risk score (88/100) falls into High Risk Range (80-100), mandating Immediate Card Freeze."
-            }
-        ]
-    elif transaction_id in review_ids:
-        risk_score = 58
-        risk_level = "Medium"
-        required_action = "Secondary Fraud Review Required"
-        findings = [
-            {
-                "title": "Unusual Spending Amount",
-                "severity": "MEDIUM",
-                "policy_tag": "Section 3.1",
-                "description": f"Transaction amount (${txn['amount']:.2f}) is significantly above the customer's average transaction amount.",
-            },
-            {
-                "title": "Manual Review Trigger",
-                "severity": "MEDIUM",
-                "policy_tag": "Section 5.3" if txn["ip_is_proxy"] else "Section 3.1",
-                "description": "The transaction should receive secondary review before it is cleared.",
-            },
-        ]
-    else:
-        risk_score = 12
-        risk_level = "Low"
-        required_action = "No Action Required - Normal Transaction"
-        findings = [
-            {
-                "title": "Standard Domestic Purchase",
-                "severity": "LOW",
-                "policy_tag": "Section 4.2",
-                "description": "Domestic online transaction from home country (USA). Amount ($42.00) is within regular bounds."
-            },
-            {
-                "title": "Clean Residential IP",
-                "severity": "PASS",
-                "policy_tag": "Section 5.3",
-                "description": "Originating IP (192.168.1.100) verified clean, non-proxy residential connection."
-            }
-        ]
+    # Evaluate Risk Score & Findings from transaction values.
+    risk_score, risk_level, required_action, findings = evaluate_transaction_risk(
+        txn, customer, history
+    )
 
     prompt = (
         f"Target Transaction: {txn}\n"
