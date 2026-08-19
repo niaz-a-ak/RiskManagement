@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aegis AI - Bank Fraud Risk Investigation Engine</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <!-- Google Fonts for Cyber/Glass Aesthetic -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-background"></div>
+  <div class="glow-orb orb-1"></div>
+  <div class="glow-orb orb-2"></div>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <div class="app-container">
+    <!-- Header / Control Bar -->
+    <header class="glass-header">
+      <div class="brand-section">
+        <div class="shield-logo">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            <path d="m9 12 2 2 4-4"></path>
+          </svg>
+        </div>
+        <div>
+          <h1>AEGIS AI <span class="badge-tag">RAG ENGINE</span></h1>
+          <p class="subtitle">Autonomous Bank Fraud Risk Investigation & Policy Grounding System</p>
+        </div>
+      </div>
+
+      <div class="control-bar">
+        <div class="search-input-wrapper">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="txn-search-input" value="TXN_99812" placeholder="Enter Transaction ID..." />
+          <button id="btn-investigate" class="btn-primary">
+            <span>Investigate</span>
+            <div class="btn-glow"></div>
+          </button>
+        </div>
+        <div class="quick-demos">
+          <span class="demo-label">Quick Demo:</span>
+          <button class="btn-demo demo-high" onclick="runInvestigation('TXN_99812')">
+            <span class="dot dot-danger"></span> TXN_99812 (High Risk)
+          </button>
+          <button class="btn-demo demo-low" onclick="runInvestigation('TXN_998112')">
+            <span class="dot dot-success"></span> TXN_998112 (Low Risk)
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Dashboard 2-Column Grid -->
+    <main class="dashboard-grid">
+      
+      <!-- LEFT COLUMN: Agent Trace & Evidence Tabs -->
+      <section class="grid-column left-column">
+        
+        <!-- Agent Execution Trace Console -->
+        <div class="glass-card terminal-card">
+          <div class="card-header terminal-header">
+            <div class="window-controls">
+              <span class="control-dot close"></span>
+              <span class="control-dot minimize"></span>
+              <span class="control-dot maximize"></span>
+            </div>
+            <div class="terminal-title">
+              <span class="terminal-icon">⚡</span> AGENT EXECUTION TRACE (Tool Calls & RAG Pipeline)
+            </div>
+            <div class="status-indicator">
+              <span class="pulse-dot"></span> LIVE TRACE
+            </div>
+          </div>
+          <div class="terminal-body" id="terminal-body">
+            <pre id="terminal-content">Click 'Investigate' or select a Quick Demo transaction to stream real-time agent tool execution logs...</pre>
+          </div>
+        </div>
+
+        <!-- Structured Evidence Tabs -->
+        <div class="glass-card evidence-card">
+          <div class="card-header">
+            <div class="tab-buttons">
+              <button class="tab-btn active" onclick="switchTab('txn-details')">
+                <span class="tab-icon">💳</span> Transaction Details
+              </button>
+              <button class="tab-btn" onclick="switchTab('cust-profile')">
+                <span class="tab-icon">👤</span> Customer Profile
+              </button>
+            </div>
+            <span class="evidence-tag">SQLite Tool Data</span>
+          </div>
+
+          <div class="card-body tab-content-container">
+            <!-- Tab 1: Transaction Details -->
+            <div id="tab-txn-details" class="tab-pane active">
+              <div class="kv-grid" id="txn-details-grid">
+                <div class="kv-item"><span class="kv-key">Transaction ID</span><span class="kv-val" id="val-txn-id">--</span></div>
+                <div class="kv-item"><span class="kv-key">User ID</span><span class="kv-val" id="val-txn-user">--</span></div>
+                <div class="kv-item"><span class="kv-key">Amount</span><span class="kv-val highlight-val" id="val-txn-amt">--</span></div>
+                <div class="kv-item"><span class="kv-key">Merchant Name</span><span class="kv-val" id="val-txn-merchant">--</span></div>
+                <div class="kv-item"><span class="kv-key">Location</span><span class="kv-val" id="val-txn-location">--</span></div>
+                <div class="kv-item"><span class="kv-key">Timestamp</span><span class="kv-val" id="val-txn-time">--</span></div>
+                <div class="kv-item"><span class="kv-key">Card Present</span><span class="kv-val" id="val-txn-cardpresent">--</span></div>
+                <div class="kv-item"><span class="kv-key">IP Address</span><span class="kv-val" id="val-txn-ip">--</span></div>
+                <div class="kv-item"><span class="kv-key">Proxy Anonymizer</span><span class="kv-val" id="val-txn-proxy">--</span></div>
+                <div class="kv-item"><span class="kv-key">Card Status</span><span class="kv-val" id="val-txn-status">--</span></div>
+              </div>
+            </div>
+
+            <!-- Tab 2: Customer Profile -->
+            <div id="tab-cust-profile" class="tab-pane">
+              <div class="kv-grid" id="cust-profile-grid">
+                <div class="kv-item"><span class="kv-key">User ID</span><span class="kv-val" id="val-cust-id">--</span></div>
+                <div class="kv-item"><span class="kv-key">Full Name</span><span class="kv-val" id="val-cust-name">--</span></div>
+                <div class="kv-item"><span class="kv-key">Home Country</span><span class="kv-val" id="val-cust-country">--</span></div>
+                <div class="kv-item"><span class="kv-key">Avg Monthly Spend</span><span class="kv-val" id="val-cust-monthly">--</span></div>
+                <div class="kv-item"><span class="kv-key">Avg Transaction Amt</span><span class="kv-val" id="val-cust-avg">--</span></div>
+                <div class="kv-item"><span class="kv-key">Total History Txns</span><span class="kv-val" id="val-cust-count">--</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- RIGHT COLUMN: Score Ring, LLM Summary, Findings, Citations & Action Center -->
+      <section class="grid-column right-column">
+
+        <!-- Verdict & Risk Score Progress Ring Gauge -->
+        <div class="glass-card score-card">
+          <div class="score-container">
+            <div class="gauge-wrapper">
+              <svg class="gauge-svg" viewBox="0 0 160 160">
+                <circle class="gauge-bg" cx="80" cy="80" r="68"></circle>
+                <circle class="gauge-progress" id="gauge-ring" cx="80" cy="80" r="68"></circle>
+              </svg>
+              <div class="gauge-content">
+                <span class="score-number" id="score-val">0</span>
+                <span class="score-total">/ 100</span>
+                <span class="risk-badge" id="risk-level-badge">PENDING</span>
+              </div>
+            </div>
+            <div class="score-meta">
+              <h2 class="verdict-title">FRAUD VERDICT</h2>
+              <p class="action-recommendation" id="required-action-text">Ready for investigation query</p>
+              <div class="threat-level-indicator">
+                <span class="indicator-bar" id="indicator-bar"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- LLM Executive Summary Card -->
+        <div class="glass-card llm-summary-card">
+          <div class="card-header">
+            <h3><span class="ai-sparkle">✨</span> AI Executive Summary</h3>
+            <span class="llm-model-badge">Gemini / RAG Grounded</span>
+          </div>
+          <div class="card-body">
+            <p id="llm-summary-text" class="llm-text">
+              Run an investigation to synthesize customer profile, transaction metadata, and ChromaDB vector-indexed policy rules into a grounded LLM summary.
+            </p>
+          </div>
+        </div>
+
+        <!-- Synthesis Findings -->
+        <div class="glass-card findings-card">
+          <div class="card-header">
+            <h3>🛡️ Threat Synthesis Findings</h3>
+            <span class="finding-count" id="finding-count">0 Rule Anomalies</span>
+          </div>
+          <div class="card-body findings-list" id="findings-container">
+            <div class="empty-state">No active investigation loaded.</div>
+          </div>
+        </div>
+
+        <!-- RAG Grounding & Policy Citations -->
+        <div class="glass-card citations-card">
+          <div class="card-header">
+            <h3>📚 RAG Policy Vector Citations</h3>
+            <span class="rag-db-tag">ChromaDB Vector Store</span>
+          </div>
+          <div class="card-body citations-list" id="citations-container">
+            <div class="empty-state">Vector policy search results will appear here.</div>
+          </div>
+        </div>
+
+        <!-- Action Control Center -->
+        <div class="glass-card action-center-card">
+          <div class="card-header">
+            <h3>⚡ Fraud Response Action Center</h3>
+            <span class="action-status-tag" id="action-status-tag">ACTIVE STATUS</span>
+          </div>
+          <div class="card-body action-buttons-grid">
+            <button id="btn-freeze" class="btn-action btn-freeze" onclick="executeAction('freeze')">
+              <span class="btn-icon">🧊</span>
+              <div class="btn-text-wrap">
+                <span class="btn-title">Freeze Customer Card</span>
+                <span class="btn-sub">Block physical & online swipes</span>
+              </div>
+            </button>
+            <button id="btn-notify" class="btn-action btn-notify" onclick="executeAction('notify')">
+              <span class="btn-icon">🔔</span>
+              <div class="btn-text-wrap">
+                <span class="btn-title">Send Customer Alert</span>
+                <span class="btn-sub">Dispatch SMS & Push verification</span>
+              </div>
+            </button>
+            <button id="btn-escalate" class="btn-action btn-escalate" onclick="executeAction('escalate')">
+              <span class="btn-icon">🚨</span>
+              <div class="btn-text-wrap">
+                <span class="btn-title">Escalate Case</span>
+                <span class="btn-sub">Transfer to Senior Fraud Team</span>
+              </div>
+            </button>
+          </div>
+        </div>
+
+      </section>
+    </main>
+  </div>
+
+  <script src="/static/script.js"></script>
+</body>
+</html>
