@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -8,8 +9,11 @@
   <!-- Google Fonts for Cyber/Glass Aesthetic -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
 </head>
+
 <body>
   <div class="app-background"></div>
   <div class="glow-orb orb-1"></div>
@@ -23,7 +27,8 @@
     <header class="glass-header">
       <div class="brand-section">
         <div class="shield-logo">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
             <path d="m9 12 2 2 4-4"></path>
           </svg>
@@ -48,10 +53,10 @@
 
     <!-- Main Dashboard 2-Column Grid -->
     <main class="dashboard-grid">
-      
+
       <!-- LEFT COLUMN: Transaction Explorer, Agent Trace & Evidence Tabs -->
       <section class="grid-column left-column">
-        
+
         <!-- Transaction Explorer & Live Search Panel -->
         <div class="glass-card explorer-card">
           <div class="card-header">
@@ -60,21 +65,28 @@
               <span class="explorer-count" id="explorer-count">Loading transactions...</span>
             </div>
             <div class="view-toggle-buttons">
-              <button class="btn-view-toggle active" id="view-mode-table" onclick="switchExplorerView('table')">📊 Table View</button>
-              <button class="btn-view-toggle" id="view-mode-card" onclick="switchExplorerView('card')">🗂️ Cards View</button>
+              <button class="btn-view-toggle active" id="view-mode-table" onclick="switchExplorerView('table')">📊 Table
+                View</button>
+              <button class="btn-view-toggle" id="view-mode-card" onclick="switchExplorerView('card')">🗂️ Cards
+                View</button>
             </div>
           </div>
           <div class="explorer-filter-bar">
             <div class="explorer-search-box">
               <span class="search-icon">🔍</span>
-              <input type="text" id="explorer-search-input" placeholder="Search transaction ID, customer, merchant, location..." />
-              <button id="explorer-search-clear" class="btn-clear" onclick="clearExplorerSearch()" style="display:none;">✕</button>
+              <input type="text" id="explorer-search-input"
+                placeholder="Search transaction ID, customer, merchant, location..." />
+              <button id="explorer-search-clear" class="btn-clear" onclick="clearExplorerSearch()"
+                style="display:none;">✕</button>
             </div>
             <div class="filter-pills">
               <button class="pill-btn active" data-filter="all" onclick="setFilterCategory('all')">All</button>
-              <button class="pill-btn pill-high" data-filter="high" onclick="setFilterCategory('high')">🔴 High Risk</button>
-              <button class="pill-btn pill-medium" data-filter="medium" onclick="setFilterCategory('medium')">🟡 Medium Risk</button>
-              <button class="pill-btn pill-low" data-filter="low" onclick="setFilterCategory('low')">🟢 Low Risk</button>
+              <button class="pill-btn pill-high" data-filter="high" onclick="setFilterCategory('high')">🔴 High
+                Risk</button>
+              <button class="pill-btn pill-medium" data-filter="medium" onclick="setFilterCategory('medium')">🟡 Medium
+                Risk</button>
+              <button class="pill-btn pill-low" data-filter="low" onclick="setFilterCategory('low')">🟢 Low
+                Risk</button>
               <button class="pill-btn" data-filter="proxy" onclick="setFilterCategory('proxy')">⚠️ Proxy</button>
               <button class="pill-btn" data-filter="frozen" onclick="setFilterCategory('frozen')">🧊 Frozen</button>
             </div>
@@ -99,7 +111,9 @@
                     </tr>
                   </thead>
                   <tbody id="main-txn-tbody">
-                    <tr><td colspan="10" class="empty-state">Loading transaction database...</td></tr>
+                    <tr>
+                      <td colspan="10" class="empty-state">Loading transaction database...</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
@@ -130,7 +144,8 @@
             </div>
           </div>
           <div class="terminal-body" id="terminal-body">
-            <pre id="terminal-content">Click 'Investigate' or select a Quick Demo transaction to stream real-time agent tool execution logs...</pre>
+            <pre
+              id="terminal-content">Click 'Investigate' or select a Quick Demo transaction to stream real-time agent tool execution logs...</pre>
           </div>
         </div>
 
@@ -155,28 +170,44 @@
             <!-- Tab 1: Transaction Details -->
             <div id="tab-txn-details" class="tab-pane active">
               <div class="kv-grid" id="txn-details-grid">
-                <div class="kv-item"><span class="kv-key">Transaction ID</span><span class="kv-val" id="val-txn-id">--</span></div>
-                <div class="kv-item"><span class="kv-key">User ID</span><span class="kv-val" id="val-txn-user">--</span></div>
-                <div class="kv-item"><span class="kv-key">Amount</span><span class="kv-val highlight-val" id="val-txn-amt">--</span></div>
-                <div class="kv-item"><span class="kv-key">Merchant Name</span><span class="kv-val" id="val-txn-merchant">--</span></div>
-                <div class="kv-item"><span class="kv-key">Location</span><span class="kv-val" id="val-txn-location">--</span></div>
-                <div class="kv-item"><span class="kv-key">Timestamp</span><span class="kv-val" id="val-txn-time">--</span></div>
-                <div class="kv-item"><span class="kv-key">Card Present</span><span class="kv-val" id="val-txn-cardpresent">--</span></div>
-                <div class="kv-item"><span class="kv-key">IP Address</span><span class="kv-val" id="val-txn-ip">--</span></div>
-                <div class="kv-item"><span class="kv-key">Proxy Anonymizer</span><span class="kv-val" id="val-txn-proxy">--</span></div>
-                <div class="kv-item"><span class="kv-key">Card Status</span><span class="kv-val" id="val-txn-status">--</span></div>
+                <div class="kv-item"><span class="kv-key">Transaction ID</span><span class="kv-val"
+                    id="val-txn-id">--</span></div>
+                <div class="kv-item"><span class="kv-key">User ID</span><span class="kv-val" id="val-txn-user">--</span>
+                </div>
+                <div class="kv-item"><span class="kv-key">Amount</span><span class="kv-val highlight-val"
+                    id="val-txn-amt">--</span></div>
+                <div class="kv-item"><span class="kv-key">Merchant Name</span><span class="kv-val"
+                    id="val-txn-merchant">--</span></div>
+                <div class="kv-item"><span class="kv-key">Location</span><span class="kv-val"
+                    id="val-txn-location">--</span></div>
+                <div class="kv-item"><span class="kv-key">Timestamp</span><span class="kv-val"
+                    id="val-txn-time">--</span></div>
+                <div class="kv-item"><span class="kv-key">Card Present</span><span class="kv-val"
+                    id="val-txn-cardpresent">--</span></div>
+                <div class="kv-item"><span class="kv-key">IP Address</span><span class="kv-val"
+                    id="val-txn-ip">--</span></div>
+                <div class="kv-item"><span class="kv-key">Proxy Anonymizer</span><span class="kv-val"
+                    id="val-txn-proxy">--</span></div>
+                <div class="kv-item"><span class="kv-key">Card Status</span><span class="kv-val"
+                    id="val-txn-status">--</span></div>
               </div>
             </div>
 
             <!-- Tab 2: Customer Profile -->
             <div id="tab-cust-profile" class="tab-pane">
               <div class="kv-grid" id="cust-profile-grid">
-                <div class="kv-item"><span class="kv-key">User ID</span><span class="kv-val" id="val-cust-id">--</span></div>
-                <div class="kv-item"><span class="kv-key">Full Name</span><span class="kv-val" id="val-cust-name">--</span></div>
-                <div class="kv-item"><span class="kv-key">Home Country</span><span class="kv-val" id="val-cust-country">--</span></div>
-                <div class="kv-item"><span class="kv-key">Avg Monthly Spend</span><span class="kv-val" id="val-cust-monthly">--</span></div>
-                <div class="kv-item"><span class="kv-key">Avg Transaction Amt</span><span class="kv-val" id="val-cust-avg">--</span></div>
-                <div class="kv-item"><span class="kv-key">Total History Txns</span><span class="kv-val" id="val-cust-count">--</span></div>
+                <div class="kv-item"><span class="kv-key">User ID</span><span class="kv-val" id="val-cust-id">--</span>
+                </div>
+                <div class="kv-item"><span class="kv-key">Full Name</span><span class="kv-val"
+                    id="val-cust-name">--</span></div>
+                <div class="kv-item"><span class="kv-key">Home Country</span><span class="kv-val"
+                    id="val-cust-country">--</span></div>
+                <div class="kv-item"><span class="kv-key">Avg Monthly Spend</span><span class="kv-val"
+                    id="val-cust-monthly">--</span></div>
+                <div class="kv-item"><span class="kv-key">Avg Transaction Amt</span><span class="kv-val"
+                    id="val-cust-avg">--</span></div>
+                <div class="kv-item"><span class="kv-key">Total History Txns</span><span class="kv-val"
+                    id="val-cust-count">--</span></div>
               </div>
             </div>
 
@@ -200,7 +231,9 @@
                     </tr>
                   </thead>
                   <tbody id="cust-history-tbody">
-                    <tr><td colspan="8" class="empty-state">Loading transaction history...</td></tr>
+                    <tr>
+                      <td colspan="8" class="empty-state">Loading transaction history...</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
@@ -241,11 +274,12 @@
         <div class="glass-card llm-summary-card">
           <div class="card-header">
             <h3><span class="ai-sparkle">✨</span> AI Executive Summary</h3>
-            <span class="llm-model-badge">Gemini / RAG Grounded</span>
+            <span class="llm-model-badge">OpenAi / RAG Grounded</span>
           </div>
           <div class="card-body">
             <p id="llm-summary-text" class="llm-text">
-              Run an investigation to synthesize customer profile, transaction metadata, and ChromaDB vector-indexed policy rules into a grounded LLM summary.
+              Run an investigation to synthesize customer profile, transaction metadata, and ChromaDB vector-indexed
+              policy rules into a grounded LLM summary.
             </p>
           </div>
         </div>
@@ -309,4 +343,5 @@
 
   <script src="/static/script.js?v=4"></script>
 </body>
+
 </html>

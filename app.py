@@ -188,6 +188,8 @@ def init_chroma_rag():
                     section_tag = "Section 4.2"
                 elif "5.3" in clean_p or "Anonymizing Proxies" in clean_p:
                     section_tag = "Section 5.3"
+                elif "6." in clean_p or "Behavioral Anomalies" in clean_p or "Unusual Amount" in clean_p:
+                    section_tag = "Section 6.2"
                 elif "7." in clean_p or "Scoring" in clean_p:
                     section_tag = "Section 7"
                 elif "8.1" in clean_p or "High-Risk" in clean_p:
@@ -279,7 +281,7 @@ def evaluate_transaction_risk(txn, customer, history):
         findings.append({
             "title": "Extreme Spending Anomaly",
             "severity": "HIGH",
-            "policy_tag": "Section 3.1",
+            "policy_tag": "Section 6.2",
             "description": f"Transaction amount (${txn['amount']:.2f}) is {amount_ratio:.1f}x the customer's average transaction amount.",
         })
     elif amount_ratio >= 5:
@@ -287,7 +289,7 @@ def evaluate_transaction_risk(txn, customer, history):
         findings.append({
             "title": "Significant Spending Anomaly",
             "severity": "MEDIUM",
-            "policy_tag": "Section 3.1",
+            "policy_tag": "Section 6.2",
             "description": f"Transaction amount (${txn['amount']:.2f}) is {amount_ratio:.1f}x the customer's average transaction amount.",
         })
     elif amount_ratio >= 2:
@@ -295,7 +297,7 @@ def evaluate_transaction_risk(txn, customer, history):
         findings.append({
             "title": "Unusual Spending Amount",
             "severity": "MEDIUM",
-            "policy_tag": "Section 3.1",
+            "policy_tag": "Section 6.2",
             "description": f"Transaction amount (${txn['amount']:.2f}) is {amount_ratio:.1f}x the customer's average transaction amount.",
         })
 
