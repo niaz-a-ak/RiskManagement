@@ -67,11 +67,20 @@ def init_db():
         ip_address TEXT NOT NULL,
         ip_is_proxy INTEGER NOT NULL,
         card_status TEXT NOT NULL DEFAULT 'active',
+        transaction_status BOOLEAN NOT NULL DEFAULT 0,
         escalated INTEGER NOT NULL DEFAULT 0,
         notified INTEGER NOT NULL DEFAULT 0,
         FOREIGN KEY (user_id) REFERENCES customer_profiles (user_id)
     )
     """)
+
+    transaction_columns = {
+        column[1] for column in cursor.execute("PRAGMA table_info(transactions)")
+    }
+    if "transaction_status" not in transaction_columns:
+        cursor.execute(
+            "ALTER TABLE transactions ADD COLUMN transaction_status BOOLEAN NOT NULL DEFAULT 0"
+        )
     
     customer_profiles = [
         ('USR_402', 'Alice Morgan', 'USA', 3500.00, 85.00),
@@ -86,22 +95,49 @@ def init_db():
     )
 
     transactions = [
-        # Alice: known low-risk and high-alert demo cases.
-        ('TXN_998112', 'USR_402', 42.00, 'Amazon.com', 'USA', '2026-08-19 12:00:00', 'no', '192.168.1.100', 0, 'active', 0, 0),
-        ('TXN_99812', 'USR_402', 1450.00, 'Luxury Watch Vault', 'UK', '2026-08-19 13:00:00', 'yes', '185.220.101.4', 1, 'active', 0, 0),
-        # Bob: routine purchases with no active risk indicators.
-        ('TXN_99814', 'USR_101', 38.00, 'Local Grocery', 'USA', '2026-08-19 09:15:00', 'yes', '98.210.33.5', 0, 'active', 0, 0),
-        ('TXN_99816', 'USR_101', 72.00, 'Coffee House', 'USA', '2026-08-19 10:05:00', 'yes', '98.210.33.5', 0, 'active', 0, 0),
-        # Charlie: medium review case caused by a proxy and a spending spike.
-        ('TXN_99815', 'USR_303', 3500.00, 'Crypto Exchange', 'Romania', '2026-08-19 14:20:00', 'no', '194.26.29.112', 1, 'active', 0, 0),
-        # Diana: modest amount anomaly requiring review, but no proxy or velocity signal.
-        ('TXN_99817', 'USR_504', 950.00, 'Online Electronics', 'USA', '2026-08-19 15:10:00', 'no', '73.44.18.20', 0, 'active', 0, 0),
-        # Ethan: international proxy transaction with a large amount anomaly.
-        ('TXN_99818', 'USR_605', 1800.00, 'Luxury Goods Online', 'France', '2026-08-19 16:25:00', 'no', '185.220.101.8', 1, 'active', 0, 0),
-        ('TXN_99819', 'USR_605', 65.00, 'Canadian Market', 'Canada', '2026-08-19 12:25:00', 'yes', '24.150.12.8', 0, 'active', 0, 0),
+        # Alice Morgan (USR_402) - Active high-risk & multi-txn history
+        ('TXN_99812', 'USR_402', 1450.00, 'Luxury Watch Vault', 'UK', '2026-08-19 13:00:00', 'yes', '185.220.101.4', 1, 'active',0, 0, 0),
+        ('TXN_998112', 'USR_402', 42.00, 'Amazon.com', 'USA', '2026-08-19 12:00:00', 'no', '192.168.1.100', 0, 'active',1, 0, 0),
+        ('TXN_998101', 'USR_402', 89.50, 'Whole Foods Market', 'USA', '2026-08-18 17:45:00', 'yes', '192.168.1.100', 0, 'active',1, 0, 0),
+        ('TXN_998102', 'USR_402', 120.00, 'Shell Gas Station', 'USA', '2026-08-18 08:30:00', 'yes', '192.168.1.100', 0, 'active',1, 0, 0),
+        ('TXN_998103', 'USR_402', 54.20, 'Starbucks Coffee', 'USA', '2026-08-17 09:15:00', 'yes', '192.168.1.100', 0, 'active',1, 0, 0),
+
+        # Bob Jones (USR_101) - Routine low-risk purchases
+        ('TXN_99816', 'USR_101', 72.00, 'Coffee House', 'USA', '2026-08-19 10:05:00', 'yes', '98.210.33.5', 0, 'active',1, 0, 0),
+        ('TXN_99814', 'USR_101', 38.00, 'Local Grocery', 'USA', '2026-08-19 09:15:00', 'yes', '98.210.33.5', 0, 'active',1, 0, 0),
+        ('TXN_998120', 'USR_101', 45.00, 'BP Gas Station', 'USA', '2026-08-18 14:10:00', 'yes', '98.210.33.5', 0, 'active',1, 0, 0),
+        ('TXN_998121', 'USR_101', 115.00, 'Walmart Supercenter', 'USA', '2026-08-17 18:20:00', 'yes', '98.210.33.5', 0, 'active',1, 0, 0),
+        ('TXN_998122', 'USR_101', 29.99, 'Netflix Subscription', 'USA', '2026-08-16 00:01:00', 'no', '98.210.33.5', 0, 'active', 1, 0, 0),
+
+        # Charlie Brown (USR_303) - Medium & high risk proxy spikes
+        ('TXN_99815', 'USR_303', 3500.00, 'Crypto Exchange', 'Romania', '2026-08-19 14:20:00', 'no', '194.26.29.112', 1, 'active',0, 0, 0),
+        ('TXN_998130', 'USR_303', 210.00, 'Best Buy Electronics', 'USA', '2026-08-18 11:30:00', 'yes', '73.18.29.4', 0, 'active',1, 0, 0),
+        ('TXN_998131', 'USR_303', 185.00, 'Home Depot', 'USA', '2026-08-17 15:40:00', 'yes', '73.18.29.4', 0, 'active',1, 0, 0),
+        ('TXN_998132', 'USR_303', 62.40, 'Chevron Gas', 'USA', '2026-08-16 08:12:00', 'yes', '73.18.29.4', 0, 'active', 1,0, 0),
+        ('TXN_998133', 'USR_303', 450.00, 'Apple Store Online', 'USA', '2026-08-15 19:05:00', 'no', '73.18.29.4', 0,1, 'active', 0, 0),
+
+        # Diana Patel (USR_504) - Amount anomalies
+        ('TXN_99817', 'USR_504', 950.00, 'Online Electronics', 'USA', '2026-08-19 15:10:00', 'no', '73.44.18.20', 0, 'active',1, 0, 0),
+        ('TXN_998140', 'USR_504', 145.00, 'Sephora Beauty', 'USA', '2026-08-18 13:25:00', 'yes', '73.44.18.20', 0, 'active',1,0, 0),
+        ('TXN_998141', 'USR_504', 82.10, "Trader Joe's", 'USA', '2026-08-17 16:50:00', 'yes', '73.44.18.20', 0, 'active',1, 0, 0),
+        ('TXN_998142', 'USR_504', 190.00, 'Nordstrom Department', 'USA', '2026-08-16 11:15:00', 'yes', '73.44.18.20', 0, 'active',1, 0, 0),
+        ('TXN_998143', 'USR_504', 35.00, 'Uber Ride Share', 'USA', '2026-08-15 22:40:00', 'no', '73.44.18.20', 0, 'active',1, 0, 0),
+
+        # Ethan Wilson (USR_605) - International proxy & local transactions
+        ('TXN_99818', 'USR_605', 1800.00, 'Luxury Goods Online', 'France', '2026-08-19 16:25:00', 'no', '185.220.101.8', 1, 'active',0, 0, 0),
+        ('TXN_99819', 'USR_605', 65.00, 'Canadian Market', 'Canada', '2026-08-19 12:25:00', 'yes', '24.150.12.8', 0, 'active',1, 0, 0),
+        ('TXN_998150', 'USR_605', 125.00, 'Tim Hortons Coffee', 'Canada', '2026-08-18 07:40:00', 'yes', '24.150.12.8', 0, 'active',1, 0, 0),
+        ('TXN_998151', 'USR_605', 340.00, 'Air Canada Booking', 'Canada', '2026-08-17 14:15:00', 'no', '24.150.12.8', 0, 'active',1, 0, 0),
+        ('TXN_998152', 'USR_605', 95.50, 'Shoppers Drug Mart', 'Canada', '2026-08-16 18:30:00', 'yes', '24.150.12.8', 0, 'active',1, 0, 0),
     ]
     cursor.executemany(
-        "INSERT OR REPLACE INTO transactions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        """
+        INSERT OR REPLACE INTO transactions (
+            transaction_id, user_id, amount, merchantname, location, timestamp,
+            card_present, ip_address, ip_is_proxy, card_status,
+            transaction_status, escalated, notified
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
         transactions,
     )
     
@@ -327,6 +363,13 @@ def evaluate_transaction_risk(txn, customer, history):
 # ==========================================
 # 4. API Endpoints
 # ==========================================
+@app.after_request
+def add_header(response):
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
 @app.route("/")
 def serve_index():
     return send_from_directory("static", "index.html")
@@ -334,6 +377,100 @@ def serve_index():
 @app.route("/static/<path:filename>")
 def serve_static(filename):
     return send_from_directory("static", filename)
+
+@app.route("/api/transactions", methods=["GET"])
+def get_transactions():
+    search_query = request.args.get("q", "").strip().lower()
+    filter_type = request.args.get("filter", "all").strip().lower()
+    
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    query = """
+    SELECT 
+        t.transaction_id,
+        t.user_id,
+        t.amount,
+        t.merchantname,
+        t.location,
+        t.timestamp,
+        t.card_present,
+        t.ip_address,
+        t.ip_is_proxy,
+        t.card_status,
+        t.transaction_status,
+        t.escalated,
+        t.notified,
+        c.full_name,
+        c.home_country,
+        c.avg_monthly_spent,
+        c.avg_transaction_amt
+    FROM transactions t
+    LEFT JOIN customer_profiles c ON t.user_id = c.user_id
+    ORDER BY t.timestamp DESC
+    """
+    
+    cursor.execute(query)
+    rows = [dict(r) for r in cursor.fetchall()]
+    conn.close()
+
+    # Pre-group history for risk evaluation
+    history_by_user = {}
+    for r in rows:
+        uid = r["user_id"]
+        if uid not in history_by_user:
+            history_by_user[uid] = []
+        history_by_user[uid].append(r)
+    
+    filtered_results = []
+    for r in rows:
+        user_id = r["user_id"]
+        customer = {
+            "user_id": user_id,
+            "full_name": r.get("full_name"),
+            "home_country": r.get("home_country"),
+            "avg_monthly_spent": r.get("avg_monthly_spent"),
+            "avg_transaction_amt": r.get("avg_transaction_amt"),
+        }
+        history = history_by_user.get(user_id, [])
+
+        score, level, action, findings = evaluate_transaction_risk(r, customer, history)
+        r["risk_score"] = score
+        r["risk_level"] = level  # "High", "Medium", "Low"
+        r["risk_color"] = "red" if level == "High" else ("yellow" if level == "Medium" else "green")
+        r["required_action"] = action
+
+        is_proxy = bool(r.get("ip_is_proxy"))
+        is_frozen = r.get("card_status") == "frozen"
+        
+        if filter_type == "high" and level != "High":
+            continue
+        if filter_type == "medium" and level != "Medium":
+            continue
+        if filter_type == "low" and level != "Low":
+            continue
+        if filter_type == "proxy" and not is_proxy:
+            continue
+        if filter_type == "frozen" and not is_frozen:
+            continue
+            
+        if search_query:
+            match = (
+                search_query in r["transaction_id"].lower()
+                or search_query in r["user_id"].lower()
+                or search_query in (r.get("full_name") or "").lower()
+                or search_query in r["merchantname"].lower()
+                or search_query in r["location"].lower()
+                or search_query in level.lower()
+                or search_query in str(r["amount"])
+            )
+            if not match:
+                continue
+                
+        filtered_results.append(r)
+        
+    return jsonify({"transactions": filtered_results, "total": len(filtered_results)})
 
 @app.route("/api/investigate/<transaction_id>", methods=["GET"])
 def investigate(transaction_id):

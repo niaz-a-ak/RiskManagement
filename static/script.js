@@ -3,36 +3,212 @@
    ========================================== */
 
 let currentInvestigation = null;
-let currentTxnId = "TXN_99812";
+let currentTxnId = null;
 let isTypingTrace = false;
+let currentFilterCategory = "all";
+let currentExplorerView = "table";
+let searchDebounceTimer = null;
 
 document.addEventListener("DOMContentLoaded", () => {
   // Bind search button & Enter key
   const searchInput = document.getElementById("txn-search-input");
   const searchBtn = document.getElementById("btn-investigate");
 
-  searchBtn.addEventListener("click", () => {
-    const val = searchInput.value.trim();
-    if (val) runInvestigation(val);
-  });
-
-  searchInput.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") {
+  if (searchBtn) {
+    searchBtn.addEventListener("click", () => {
       const val = searchInput.value.trim();
       if (val) runInvestigation(val);
-    }
-  });
+    });
+  }
 
-  // Initial load with default TXN_99812
-  runInvestigation(currentTxnId);
+  if (searchInput) {
+    searchInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        const val = searchInput.value.trim();
+        if (val) runInvestigation(val);
+      }
+    });
+  }
+
+  // Bind Explorer live search input
+  const explorerInput = document.getElementById("explorer-search-input");
+  if (explorerInput) {
+    explorerInput.addEventListener("input", (e) => {
+      const val = e.target.value;
+      const clearBtn = document.getElementById("explorer-search-clear");
+      if (clearBtn) clearBtn.style.display = val ? "block" : "none";
+      
+      clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = setTimeout(() => {
+        loadTransactionList(val, currentFilterCategory);
+      }, 200);
+    });
+  }
+
+  // Initial load
+  loadTransactionList();
 });
+
+function switchExplorerView(mode) {
+  currentExplorerView = mode;
+  const btnTable = document.getElementById("view-mode-table");
+  const btnCard = document.getElementById("view-mode-card");
+  const tableCont = document.getElementById("explorer-table-container");
+  const cardCont = document.getElementById("explorer-card-container");
+
+  if (btnTable) btnTable.classList.toggle("active", mode === "table");
+  if (btnCard) btnCard.classList.toggle("active", mode === "card");
+  if (tableCont) tableCont.style.display = mode === "table" ? "block" : "none";
+  if (cardCont) cardCont.style.display = mode === "card" ? "block" : "none";
+}
+
+// ==========================================
+// Transaction Explorer & Search Logic
+// ==========================================
+async function loadTransactionList(query = "", category = "all") {
+  const container = document.getElementById("txn-list-container");
+  const mainTbody = document.getElementById("main-txn-tbody");
+  const countTag = document.getElementById("explorer-count");
+
+  try {
+    const url = `/api/transactions?q=${encodeURIComponent(query)}&filter=${encodeURIComponent(category)}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Failed to fetch transactions");
+    const data = await res.json();
+    const txns = data.transactions || [];
+
+    if (countTag) {
+      countTag.innerText = `${txns.length} Transaction${txns.length === 1 ? '' : 's'}`;
+    }
+
+    // 1. Render Table View
+    if (mainTbody) {
+      if (txns.length === 0) {
+        mainTbody.innerHTML = `<tr><td colspan="10" class="empty-state">No matching transactions found.</td></tr>`;
+      } else {
+        mainTbody.innerHTML = txns.map(t => {
+          const isActive = t.transaction_id === currentTxnId;
+          const isProxy = Boolean(t.ip_is_proxy);
+          const isFrozen = t.card_status === "frozen";
+          const isSuccessful = Boolean(t.transaction_status);
+
+          let alertBadgeHtml = `<span class="badge-table-low">🟢 Normal</span>`;
+          if (t.risk_level === "High" || t.risk_color === "red") {
+            alertBadgeHtml = `<span class="badge-table-high">🔴 High Alert</span>`;
+          } else if (t.risk_level === "Medium" || t.risk_color === "yellow") {
+            alertBadgeHtml = `<span class="badge-table-medium">🟡 Medium Alert</span>`;
+          }
+
+          return `
+            <tr class="main-txn-row ${isActive ? 'active-table-row' : ''}" id="table-row-${t.transaction_id}" onclick="runInvestigation('${t.transaction_id}')">
+              <td>${alertBadgeHtml}</td>
+              <td class="col-txn-id"><strong>${t.transaction_id}</strong></td>
+              <td>
+                <div class="tbl-cust-cell">
+                  <span class="tbl-cust-name">${t.full_name || t.user_id}</span>
+                  <span class="tbl-cust-id">(${t.user_id})</span>
+                </div>
+              </td>
+              <td>${t.merchantname}</td>
+              <td>📍 ${t.location}</td>
+              <td class="col-amount">$${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+              <td>${isProxy ? `<span class="txn-badge badge-proxy">⚠️ Proxy</span>` : `<span class="txt-dim">Clean</span>`}</td>
+              <td><span class="txn-badge ${isFrozen ? 'badge-frozen' : 'badge-active'}">${isFrozen ? 'FROZEN' : 'ACTIVE'}</span></td>
+              <td><span class="txn-badge ${isSuccessful ? 'badge-transaction-success' : 'badge-transaction-failed'}">${isSuccessful ? 'SUCCESS' : 'FAILED'}</span></td>
+              <td>
+                <button class="btn-table-investigate">🔍 Investigate</button>
+              </td>
+            </tr>
+          `;
+        }).join("");
+      }
+    }
+
+    // 2. Render Cards View
+    if (container) {
+      if (txns.length === 0) {
+        container.innerHTML = `<div class="empty-state">No matching transactions found.</div>`;
+      } else {
+        container.innerHTML = txns.map(t => {
+          const isActive = t.transaction_id === currentTxnId;
+          const isProxy = Boolean(t.ip_is_proxy);
+          const isFrozen = t.card_status === "frozen";
+
+          let alertBadge = `<span class="txn-badge badge-risk-low">🟢 Normal</span>`;
+          if (t.risk_level === "High" || t.risk_color === "red") {
+            alertBadge = `<span class="txn-badge badge-risk-high">🔴 HIGH ALERT</span>`;
+          } else if (t.risk_level === "Medium" || t.risk_color === "yellow") {
+            alertBadge = `<span class="txn-badge badge-risk-medium">🟡 MEDIUM ALERT</span>`;
+          }
+
+          return `
+            <div class="txn-row ${isActive ? 'active' : ''} risk-${t.risk_color || 'green'}" id="txn-row-${t.transaction_id}" onclick="runInvestigation('${t.transaction_id}')">
+              <div class="txn-left">
+                <div class="txn-id-row">
+                  <span class="txn-id-text">${t.transaction_id}</span>
+                  <span class="txn-cust-name">${t.full_name ? `${t.full_name} (${t.user_id})` : t.user_id}</span>
+                </div>
+                <div class="txn-sub-meta">
+                  <span>📍 ${t.location}</span>
+                  <span>•</span>
+                  <span>🏪 ${t.merchantname}</span>
+                </div>
+              </div>
+              <div class="txn-right">
+                <span class="txn-amount">$${Number(t.amount).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                <div class="txn-badge-group">
+                  ${alertBadge}
+                  ${isProxy ? `<span class="txn-badge badge-proxy">⚠️ Proxy</span>` : ''}
+                  <span class="txn-badge ${isFrozen ? 'badge-frozen' : 'badge-active'}">${isFrozen ? 'FROZEN' : 'ACTIVE'}</span>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join("");
+      }
+    }
+
+  } catch (err) {
+    console.error("Error loading transaction list:", err);
+    if (container) container.innerHTML = `<div class="empty-state">Failed to load transaction list.</div>`;
+    if (mainTbody) mainTbody.innerHTML = `<tr><td colspan="10" class="empty-state">Failed to load transactions: ${err.message}</td></tr>`;
+  }
+}
+
+function setFilterCategory(category) {
+  currentFilterCategory = category;
+  document.querySelectorAll(".pill-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.filter === category);
+  });
+  const input = document.getElementById("explorer-search-input");
+  const currentQuery = input ? input.value.trim() : "";
+  loadTransactionList(currentQuery, category);
+}
+
+function clearExplorerSearch() {
+  const input = document.getElementById("explorer-search-input");
+  if (input) input.value = "";
+  const clearBtn = document.getElementById("explorer-search-clear");
+  if (clearBtn) clearBtn.style.display = "none";
+  loadTransactionList("", currentFilterCategory);
+}
 
 // ==========================================
 // 1. Investigation API Call & Data Pipeline
 // ==========================================
 async function runInvestigation(txnId) {
   currentTxnId = txnId;
-  document.getElementById("txn-search-input").value = txnId;
+  const searchInput = document.getElementById("txn-search-input");
+  if (searchInput) searchInput.value = txnId;
+
+  // Highlight active transaction in cards view & table view
+  document.querySelectorAll(".txn-row").forEach(el => el.classList.remove("active"));
+  const activeCardRow = document.getElementById(`txn-row-${txnId}`);
+  if (activeCardRow) activeCardRow.classList.add("active");
+
+  document.querySelectorAll(".main-txn-row").forEach(el => el.classList.remove("active-table-row"));
+  const activeTableRow = document.getElementById(`table-row-${txnId}`);
+  if (activeTableRow) activeTableRow.classList.add("active-table-row");
 
   // Clear UI elements
   document.getElementById("terminal-content").innerText = "Connecting to USBank Risk Management AI Engine...";
@@ -124,29 +300,72 @@ function populateEvidenceData(data) {
   document.getElementById("val-cust-monthly").innerText = cust.avg_monthly_spent ? `$${Number(cust.avg_monthly_spent).toLocaleString('en-US', {minimumFractionDigits: 2})}` : "--";
   document.getElementById("val-cust-avg").innerText = cust.avg_transaction_amt ? `$${Number(cust.avg_transaction_amt).toLocaleString('en-US', {minimumFractionDigits: 2})}` : "--";
   document.getElementById("val-cust-count").innerText = (data.user_history || []).length;
+
+  // Customer history tab rendering
+  const historyList = data.user_history || [];
+  const historyTitle = document.getElementById("cust-history-title");
+  if (historyTitle) {
+    historyTitle.innerText = `Full History for ${cust.full_name || cust.user_id || 'Customer'} (${historyList.length} Transactions Found)`;
+  }
+  
+  const historyTbody = document.getElementById("cust-history-tbody");
+  if (historyTbody) {
+    if (historyList.length === 0) {
+      historyTbody.innerHTML = `<tr><td colspan="8" class="empty-state">No transaction history found for customer.</td></tr>`;
+    } else {
+      historyTbody.innerHTML = historyList.map(h => {
+        const isCurrent = h.transaction_id === txn.transaction_id;
+        const isProxy = Boolean(h.ip_is_proxy);
+        const isSuccessful = Boolean(h.transaction_status);
+        const amt = `$${Number(h.amount).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+        const timeShort = h.timestamp ? h.timestamp.split('.')[0] : '--';
+
+        let alertBadge = `<span class="badge-table-low">🟢 Normal</span>`;
+        if (h.risk_level === "High" || (h.amount >= 1000 && isProxy)) {
+          alertBadge = `<span class="badge-table-high">🔴 High Alert</span>`;
+        } else if (h.risk_level === "Medium" || isProxy || h.amount >= 500) {
+          alertBadge = `<span class="badge-table-medium">🟡 Medium Alert</span>`;
+        }
+
+        return `
+          <tr class="${isCurrent ? 'current-history-row' : ''}">
+            <td><strong>${h.transaction_id}</strong> ${isCurrent ? '⭐' : ''}</td>
+            <td>${timeShort}</td>
+            <td>${h.merchantname}</td>
+            <td>${h.location}</td>
+            <td style="color: var(--accent-cyan); font-weight:700;">${amt}</td>
+            <td>${alertBadge}</td>
+            <td><span class="txn-badge ${isSuccessful ? 'badge-transaction-success' : 'badge-transaction-failed'}">${isSuccessful ? 'SUCCESS' : 'FAILED'}</span></td>
+            <td>
+              <button class="btn-history-view" onclick="runInvestigation('${h.transaction_id}')">Investigate</button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+  }
 }
 
 // ==========================================
 // 4. Tab Switching Logic
 // ==========================================
 function switchTab(tabId) {
-  const btnDetails = document.querySelectorAll(".tab-btn")[0];
-  const btnCust = document.querySelectorAll(".tab-btn")[1];
-  
-  const paneDetails = document.getElementById("tab-txn-details");
-  const paneCust = document.getElementById("tab-cust-profile");
+  const tabs = ["txn-details", "cust-profile", "cust-history"];
+  const btns = document.querySelectorAll(".tab-btn");
 
-  if (tabId === "txn-details") {
-    btnDetails.classList.add("active");
-    btnCust.classList.remove("active");
-    paneDetails.classList.add("active");
-    paneCust.classList.remove("active");
-  } else {
-    btnCust.classList.add("active");
-    btnDetails.classList.remove("active");
-    paneCust.classList.add("active");
-    paneDetails.classList.remove("active");
-  }
+  tabs.forEach((id, index) => {
+    const btn = btns[index];
+    const pane = document.getElementById(`tab-${id}`);
+    if (btn && pane) {
+      if (id === tabId) {
+        btn.classList.add("active");
+        pane.classList.add("active");
+      } else {
+        btn.classList.remove("active");
+        pane.classList.remove("active");
+      }
+    }
+  });
 }
 
 // ==========================================
@@ -275,6 +494,11 @@ async function executeAction(actionType) {
       }
       
       document.getElementById("action-status-tag").innerText = `ACTION EXEC: ${actionType.toUpperCase()} COMPLETED`;
+      
+      // Refresh transaction explorer list to reflect updated status (e.g. FROZEN)
+      const input = document.getElementById("explorer-search-input");
+      const currentQuery = input ? input.value.trim() : "";
+      loadTransactionList(currentQuery, currentFilterCategory);
     } else {
       showToast(result.error || "Action failed", "danger");
     }

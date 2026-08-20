@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>USBank Risk Management AI - Bank Fraud Risk Investigation Engine</title>
-  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="/static/style.css?v=3" />
   <!-- Google Fonts for Cyber/Glass Aesthetic -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -29,7 +29,7 @@
           </svg>
         </div>
         <div>
-          <h1>USBank Risk Management AI <span class="badge-tag">RAG ENGINE</span></h1>
+          <h1>USBank Risk Management AI </h1>
           <p class="subtitle">Autonomous Bank Fraud Risk Investigation & Policy Grounding System</p>
         </div>
       </div>
@@ -37,19 +37,10 @@
       <div class="control-bar">
         <div class="search-input-wrapper">
           <span class="search-icon">🔍</span>
-          <input type="text" id="txn-search-input" value="TXN_99812" placeholder="Enter Transaction ID..." />
+          <input type="text" id="txn-search-input" value="" placeholder="Enter Transaction ID..." />
           <button id="btn-investigate" class="btn-primary">
             <span>Investigate</span>
             <div class="btn-glow"></div>
-          </button>
-        </div>
-        <div class="quick-demos">
-          <span class="demo-label">Quick Demo:</span>
-          <button class="btn-demo demo-high" onclick="runInvestigation('TXN_99812')">
-            <span class="dot dot-danger"></span> TXN_99812 (High Risk)
-          </button>
-          <button class="btn-demo demo-low" onclick="runInvestigation('TXN_998112')">
-            <span class="dot dot-success"></span> TXN_998112 (Low Risk)
           </button>
         </div>
       </div>
@@ -58,9 +49,71 @@
     <!-- Main Dashboard 2-Column Grid -->
     <main class="dashboard-grid">
       
-      <!-- LEFT COLUMN: Agent Trace & Evidence Tabs -->
+      <!-- LEFT COLUMN: Transaction Explorer, Agent Trace & Evidence Tabs -->
       <section class="grid-column left-column">
         
+        <!-- Transaction Explorer & Live Search Panel -->
+        <div class="glass-card explorer-card">
+          <div class="card-header">
+            <div class="explorer-header-left">
+              <h3><span class="header-icon">📊</span> All Transactions Table Explorer</h3>
+              <span class="explorer-count" id="explorer-count">Loading transactions...</span>
+            </div>
+            <div class="view-toggle-buttons">
+              <button class="btn-view-toggle active" id="view-mode-table" onclick="switchExplorerView('table')">📊 Table View</button>
+              <button class="btn-view-toggle" id="view-mode-card" onclick="switchExplorerView('card')">🗂️ Cards View</button>
+            </div>
+          </div>
+          <div class="explorer-filter-bar">
+            <div class="explorer-search-box">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="explorer-search-input" placeholder="Search transaction ID, customer, merchant, location..." />
+              <button id="explorer-search-clear" class="btn-clear" onclick="clearExplorerSearch()" style="display:none;">✕</button>
+            </div>
+            <div class="filter-pills">
+              <button class="pill-btn active" data-filter="all" onclick="setFilterCategory('all')">All</button>
+              <button class="pill-btn pill-high" data-filter="high" onclick="setFilterCategory('high')">🔴 High Risk</button>
+              <button class="pill-btn pill-medium" data-filter="medium" onclick="setFilterCategory('medium')">🟡 Medium Risk</button>
+              <button class="pill-btn pill-low" data-filter="low" onclick="setFilterCategory('low')">🟢 Low Risk</button>
+              <button class="pill-btn" data-filter="proxy" onclick="setFilterCategory('proxy')">⚠️ Proxy</button>
+              <button class="pill-btn" data-filter="frozen" onclick="setFilterCategory('frozen')">🧊 Frozen</button>
+            </div>
+          </div>
+          <div class="card-body explorer-list-body">
+            <!-- Table View Container (Default) -->
+            <div id="explorer-table-container" class="explorer-view-wrapper">
+              <div class="main-txn-table-wrapper">
+                <table class="main-txn-table">
+                  <thead>
+                    <tr>
+                      <th>Alert</th>
+                      <th>TXN ID</th>
+                      <th>Customer Name</th>
+                      <th>Merchant</th>
+                      <th>Location</th>
+                      <th>Amount</th>
+                      <th>Proxy</th>
+                      <th>Status</th>
+                      <th>Transaction Status</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="main-txn-tbody">
+                    <tr><td colspan="10" class="empty-state">Loading transaction database...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Card View Container -->
+            <div id="explorer-card-container" class="explorer-view-wrapper" style="display:none;">
+              <div class="txn-list-grid" id="txn-list-container">
+                <div class="empty-state">Loading transactions from database...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Agent Execution Trace Console -->
         <div class="glass-card terminal-card">
           <div class="card-header terminal-header">
@@ -90,6 +143,9 @@
               </button>
               <button class="tab-btn" onclick="switchTab('cust-profile')">
                 <span class="tab-icon">👤</span> Customer Profile
+              </button>
+              <button class="tab-btn" onclick="switchTab('cust-history')">
+                <span class="tab-icon">📜</span> Customer History
               </button>
             </div>
             <span class="evidence-tag">SQLite Tool Data</span>
@@ -121,6 +177,32 @@
                 <div class="kv-item"><span class="kv-key">Avg Monthly Spend</span><span class="kv-val" id="val-cust-monthly">--</span></div>
                 <div class="kv-item"><span class="kv-key">Avg Transaction Amt</span><span class="kv-val" id="val-cust-avg">--</span></div>
                 <div class="kv-item"><span class="kv-key">Total History Txns</span><span class="kv-val" id="val-cust-count">--</span></div>
+              </div>
+            </div>
+
+            <!-- Tab 3: Customer History Table -->
+            <div id="tab-cust-history" class="tab-pane">
+              <div class="cust-history-header">
+                <span class="history-title" id="cust-history-title">Customer History Records</span>
+              </div>
+              <div class="cust-history-table-wrapper">
+                <table class="cust-history-table">
+                  <thead>
+                    <tr>
+                      <th>TXN ID</th>
+                      <th>Date & Time</th>
+                      <th>Merchant</th>
+                      <th>Location</th>
+                      <th>Amount</th>
+                      <th>Proxy</th>
+                      <th>Transaction Status</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="cust-history-tbody">
+                    <tr><td colspan="8" class="empty-state">Loading transaction history...</td></tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -225,6 +307,6 @@
     </main>
   </div>
 
-  <script src="/static/script.js"></script>
+  <script src="/static/script.js?v=4"></script>
 </body>
 </html>
