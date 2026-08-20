@@ -214,7 +214,7 @@ async function runInvestigation(txnId) {
   document.getElementById("terminal-content").innerText = "Connecting to USBank Risk Management AI Engine...";
   
   try {
-    const response = await fetch(`/api/investigate/${encodeURIComponent(txnId)}`);
+    const response = await fetch(`/api/investigate/${encodeURIComponent(txnId)}?include_summary=false`);
     if (!response.ok) {
       const err = await response.json();
       showToast(err.error || "Transaction not found", "danger");
@@ -235,8 +235,9 @@ async function runInvestigation(txnId) {
     // Animate score gauge & risk indicators
     updateRiskGauge(data.risk_score, data.risk_level, data.required_action);
 
-    // Render LLM summary
-    document.getElementById("llm-summary-text").innerText = data.llm_summary || "No summary available.";
+    // Start the slow provider request after the evidence is visible.
+    showSummaryLoading();
+    loadInvestigationSummary(txnId);
 
     // Render findings & citations
     renderFindings(data.findings || []);
@@ -246,6 +247,29 @@ async function runInvestigation(txnId) {
     console.error("Investigation error:", error);
     showToast("Server communication error", "danger");
   }
+}
+
+async function loadInvestigationSummary(txnId) {
+  try {
+    const response = await fetch(`/api/investigate/${encodeURIComponent(txnId)}?include_summary=true`);
+    if (!response.ok) throw new Error(`Summary request failed with status ${response.status}`);
+
+    const data = await response.json();
+    if (currentTxnId !== txnId) return;
+
+    currentInvestigation = {...currentInvestigation, ...data};
+    document.getElementById("llm-summary-text").innerText = data.llm_summary || "No summary available.";
+    console.log(`[LLM] Provider used: ${data.llm_provider || "fallback"}`);
+  } catch (error) {
+    if (currentTxnId !== txnId) return;
+    console.error("Summary error:", error);
+    document.getElementById("llm-summary-text").innerText = "Summary unavailable. The evidence and risk assessment are still available.";
+  }
+}
+
+function showSummaryLoading() {
+  document.getElementById("llm-summary-text").innerHTML =
+    '<span class="llm-loading"><span class="llm-spinner" aria-hidden="true"></span>Generating executive summary...</span>';
 }
 
 // ==========================================

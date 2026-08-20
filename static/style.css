@@ -563,6 +563,26 @@ body {
   color: #e2e8f0;
 }
 
+.llm-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: #c084fc;
+}
+
+.llm-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(192, 132, 252, 0.25);
+  border-top-color: #c084fc;
+  border-radius: 50%;
+  animation: llm-spin 0.8s linear infinite;
+}
+
+@keyframes llm-spin {
+  to { transform: rotate(360deg); }
+}
+
 /* Synthesis Findings */
 .finding-count {
   font-size: 0.7rem;

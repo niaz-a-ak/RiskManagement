@@ -122,6 +122,7 @@ def init_db():
         ('TXN_998141', 'USR_504', 82.10, "Trader Joe's", 'USA', '2026-08-17 16:50:00', 'yes', '73.44.18.20', 0, 'active',1, 0, 0),
         ('TXN_998142', 'USR_504', 190.00, 'Nordstrom Department', 'USA', '2026-08-16 11:15:00', 'yes', '73.44.18.20', 0, 'active',1, 0, 0),
         ('TXN_998143', 'USR_504', 35.00, 'Uber Ride Share', 'USA', '2026-08-15 22:40:00', 'no', '73.44.18.20', 0, 'active',1, 0, 0),
+        ('TXN_99820', 'USR_504', 450.00, 'Online Camera Store', 'USA', '2026-08-19 17:05:00', 'no', '185.220.101.20', 1, 'active',1, 0, 0),
 
         # Ethan Wilson (USR_605) - International proxy & local transactions
         ('TXN_99818', 'USR_605', 1800.00, 'Luxury Goods Online', 'France', '2026-08-19 16:25:00', 'no', '185.220.101.8', 1, 'active',0, 0, 0),
@@ -129,6 +130,7 @@ def init_db():
         ('TXN_998150', 'USR_605', 125.00, 'Tim Hortons Coffee', 'Canada', '2026-08-18 07:40:00', 'yes', '24.150.12.8', 0, 'active',1, 0, 0),
         ('TXN_998151', 'USR_605', 340.00, 'Air Canada Booking', 'Canada', '2026-08-17 14:15:00', 'no', '24.150.12.8', 0, 'active',1, 0, 0),
         ('TXN_998152', 'USR_605', 95.50, 'Shoppers Drug Mart', 'Canada', '2026-08-16 18:30:00', 'yes', '24.150.12.8', 0, 'active',1, 0, 0),
+        ('TXN_99821', 'USR_605', 600.00, 'International Travel Booking', 'France', '2026-08-19 17:20:00', 'no', '24.150.12.9', 0, 'active',1, 0, 0),
     ]
     cursor.executemany(
         """
@@ -239,7 +241,12 @@ def generate_llm_summary(prompt, target_txn_id, risk_score):
             print("[LLM] Calling OpenAI API")
             last_llm_provider = "openai"
             import openai
-            client = openai.OpenAI(api_key=openai_key)
+            openai_timeout = float(os.environ.get("OPENAI_TIMEOUT_SECONDS", "20"))
+            client = openai.OpenAI(
+                api_key=openai_key,
+                timeout=openai_timeout,
+                max_retries=0,
+            )
             res = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[{"role": "system", "content": "You are USBank Risk Management AI, a Senior Fraud Investigation Agent grounding answers in U.S. Bank Fraud Risk Policy."},
@@ -476,6 +483,7 @@ def get_transactions():
 
 @app.route("/api/investigate/<transaction_id>", methods=["GET"])
 def investigate(transaction_id):
+    include_summary = request.args.get("include_summary", "true").lower() == "true"
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
@@ -510,36 +518,53 @@ def investigate(transaction_id):
         f"[RAG INDEX] Querying ChromaDB collection 'us_bank_risk_policies' (Parsed from {PDF_PATH})...",
     ]
     
-    # RAG Vector Search in ChromaDB
-    rag_query = f"{txn['location']} card_present {txn['card_present']} proxy {txn['ip_is_proxy']} amount {txn['amount']} velocity continent tor exit node"
-    rag_res = chroma_collection.query(query_texts=[rag_query], n_results=3)
+    # Evaluate risk before retrieval so citations are grounded in the same policy sections.
+    risk_score, risk_level, required_action, findings = evaluate_transaction_risk(
+        txn, customer, history
+    )
+
+    # Retrieve the best policy chunk for each section referenced by a finding.
+    finding_sections = list(dict.fromkeys(finding["policy_tag"] for finding in findings))
+    finding_context = " ".join(
+        f"{finding['policy_tag']} {finding['title']} {finding['description']}"
+        for finding in findings
+    )
+    section_results = []
+    for section in finding_sections:
+        rag_res = chroma_collection.query(
+            query_texts=[f"{section} {finding_context}"],
+            n_results=1,
+            where={"section": section},
+        )
+        section_results.append(rag_res)
     
     citations = []
-    matched_docs = rag_res.get("documents", [[]])[0]
-    matched_metas = rag_res.get("metadatas", [[]])[0]
-    matched_distances = rag_res.get("distances", [[]])[0]
-
     section_titles = {
         "Section 4.2": "Impossible Travel Velocity",
         "Section 5.3": "Anonymizing Proxies",
+        "Section 6.2": "Behavioral Spending Anomalies",
         "Section 7": "Risk Scoring and Classification",
         "Section 8.1": "High-Risk Action Rule",
         "Section Policy": "U.S. Bank Risk Policy",
     }
 
     retrieved_citations = []
-    for index, document in enumerate(matched_docs):
-        metadata = matched_metas[index] if index < len(matched_metas) else {}
-        distance = matched_distances[index] if index < len(matched_distances) else 0
-        section = metadata.get("section", "Section Policy")
-        retrieved_citations.append({
-            "section": section,
-            "title": section_titles.get(section, "Policy Rule"),
-            "match_score": round(100 / (1 + max(distance, 0)), 1),
-            "text": document,
-            "source": metadata.get("source", PDF_PATH),
-            "page": metadata.get("page"),
-        })
+    for rag_res in section_results:
+        documents = rag_res.get("documents", [[]])[0]
+        metadatas = rag_res.get("metadatas", [[]])[0]
+        distances = rag_res.get("distances", [[]])[0]
+        for index, document in enumerate(documents):
+            metadata = metadatas[index] if index < len(metadatas) else {}
+            distance = distances[index] if index < len(distances) else 0
+            section = metadata.get("section", "Section Policy")
+            retrieved_citations.append({
+                "section": section,
+                "title": section_titles.get(section, "Policy Rule"),
+                "match_score": round(100 / (1 + max(distance, 0)), 1),
+                "text": document,
+                "source": metadata.get("source", PDF_PATH),
+                "page": metadata.get("page"),
+            })
     
     # Ground citations directly from US_Bank_Sample_Risk_Policy.pdf
     default_citations_high = [
@@ -588,21 +613,22 @@ def investigate(transaction_id):
         
     trace.append(f"[LLM PROMPT] Assembling evidence context (DB records + RAG chunks from {PDF_PATH})...")
     
-    # Evaluate Risk Score & Findings from transaction values.
-    risk_score, risk_level, required_action, findings = evaluate_transaction_risk(
-        txn, customer, history
-    )
+    transaction_status_label = "SUCCESS" if bool(txn.get("transaction_status")) else "FAILED"
 
-    prompt = (
-        f"Target Transaction: {txn}\n"
-        f"Customer Profile: {customer}\n"
-        f"User History: {history}\n"
-        f"U.S. Bank Policy Chunks: {[c['text'] for c in citations]}\n"
-        "Provide a concise executive fraud risk investigation summary."
-    )
-
-    trace.append("[LLM INFERENCE] Executing LLM synthesis & executive summary generation...")
-    llm_summary = generate_llm_summary(prompt, transaction_id, risk_score)
+    llm_summary = None
+    if include_summary:
+        prompt = (
+            f"Target Transaction: {txn}\n"
+            f"Transaction Status: {transaction_status_label} (transaction_status mapping: 1=SUCCESS, 0=FAILED)\n"
+            f"Customer Profile: {customer}\n"
+            f"User History: {history}\n"
+            f"U.S. Bank Policy Chunks: {[c['text'] for c in citations]}\n"
+            "Provide a concise executive fraud risk investigation summary."
+        )
+        trace.append("[LLM INFERENCE] Executing LLM synthesis & executive summary generation...")
+        llm_summary = generate_llm_summary(prompt, transaction_id, risk_score)
+    else:
+        trace.append("[LLM INFERENCE] Deferred until evidence data is rendered...")
     trace.append(f"[VERDICT GENERATED] Fraud Risk Score: {risk_score}/100 ({risk_level} Risk). Action: {required_action}.")
 
     response_payload = {
