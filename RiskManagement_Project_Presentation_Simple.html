@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Risk Management AI Project - Simple Overview</title>
+<style>
+@page {
+  size: A4;
+  margin: 15mm 16mm;
+}
+:root {
+  --navy: #12304a;
+  --blue: #087ea4;
+  --teal: #13a89e;
+  --gold: #e0a229;
+  --pale: #edf7f8;
+  --ink: #1d2935;
+  --muted: #5c6a75;
+  --line: #d7e2e8;
+  --red: #c53030;
+  --green: #276749;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  color: var(--ink);
+  font-family: "Segoe UI", Arial, sans-serif;
+  font-size: 10.5pt;
+  line-height: 1.5;
+  background: #ffffff;
+}
+h1, h2, h3 {
+  font-family: Georgia, "Times New Roman", serif;
+  color: var(--navy);
+  margin-top: 0;
+}
+h1 { font-size: 32pt; line-height: 1.1; margin-bottom: 12px; }
+h2 { font-size: 20pt; border-bottom: 3px solid var(--teal); padding-bottom: 5px; margin: 0 0 14px; }
+h3 { font-size: 13pt; margin: 12px 0 6px; }
+p { margin: 6px 0 10px; }
+.page {
+  page-break-before: always;
+  min-height: 250mm;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.cover {
+  min-height: 250mm;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 15mm 5mm 5mm;
+}
+.kicker {
+  color: var(--teal);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 9pt;
+}
+.line {
+  width: 50mm;
+  height: 5px;
+  background: var(--gold);
+  margin: 20px 0;
+  border-radius: 2px;
+}
+.lead {
+  font-size: 15pt;
+  color: var(--muted);
+  max-width: 150mm;
+  line-height: 1.35;
+}
+.hero {
+  background: var(--pale);
+  border-left: 5px solid var(--blue);
+  padding: 14px 18px;
+  margin-top: 22px;
+  max-width: 160mm;
+  border-radius: 0 6px 6px 0;
+}
+.small { color: var(--muted); font-size: 8.5pt; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.card {
+  border: 1px solid var(--line);
+  border-top: 3.5px solid var(--blue);
+  padding: 12px;
+  border-radius: 6px;
+  background: #ffffff;
+}
+.card h3 { margin-top: 0; }
+.flow {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  margin: 14px 0 18px;
+}
+.flow div {
+  flex: 1;
+  background: var(--pale);
+  border: 1px solid #bddde1;
+  padding: 10px 6px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 8.5pt;
+  color: var(--navy);
+  border-radius: 5px;
+}
+.arrow {
+  align-self: center;
+  color: var(--gold);
+  font-size: 16pt;
+  font-weight: bold;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0 14px;
+  font-size: 9.5pt;
+}
+th {
+  background: var(--navy);
+  color: #fff;
+  text-align: left;
+  padding: 7px 10px;
+  font-weight: 600;
+}
+td {
+  border: 1px solid var(--line);
+  padding: 7px 10px;
+  vertical-align: middle;
+}
+tr:nth-child(even) td { background: #f8fafc; }
+.score-card {
+  text-align: center;
+  padding: 14px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #ffffff;
+}
+.score-card strong { display: block; font-size: 24pt; margin-bottom: 2px; }
+.high { color: var(--red); font-weight: bold; }
+.med { color: #b7791f; font-weight: bold; }
+.low { color: var(--green); font-weight: bold; }
+code {
+  background: #eef2f4;
+  padding: 1.5px 5px;
+  font-family: Consolas, monospace;
+  font-size: 9pt;
+  border-radius: 3px;
+}
+.note {
+  background: #fff8e8;
+  border-left: 4px solid var(--gold);
+  padding: 9px 13px;
+  margin: 10px 0;
+  border-radius: 0 4px 4px 0;
+  font-size: 9.5pt;
+}
+ul, ol { padding-left: 20px; margin: 6px 0 10px; }
+li { margin: 4px 0; }
+.footer {
+  border-top: 1px solid var(--line);
+  padding-top: 6px;
+  color: var(--muted);
+  font-size: 8.5pt;
+  display: flex;
+  justify-content: space-between;
+}
+</style>
+</head>
+<body>
+
+<!-- ================= COVER PAGE ================= -->
+<div class="cover">
+  <div>
+    <div class="kicker">U.S. Bank AI Hackathon 2026</div>
+    <div class="line"></div>
+    <h1>AI Fraud Risk<br>Investigation App</h1>
+    <p class="lead">A simple tool that helps a fraud analyst check suspicious credit card transactions quickly and clearly.</p>
+    <div class="hero">
+      <strong>In Simple Words:</strong><br>
+      The analyst clicks on a transaction. The app immediately checks customer history and bank policy rules, calculates a 0 to 100 risk score, writes a plain English summary, and gives 1-click action buttons.
+    </div>
+  </div>
+  <div>
+    <div class="grid" style="margin-bottom: 15px;">
+      <div class="card">
+        <strong>What It Does</strong>
+        <p class="small">Combines transaction data, policy rules, and AI explanations in one place.</p>
+      </div>
+      <div class="card">
+        <strong>Why It Helps</strong>
+        <p class="small">Saves time, stops fraud faster, and explains every decision with clear evidence.</p>
+      </div>
+    </div>
+    <div class="footer">
+      <span><strong>Project:</strong> RiskManagement</span>
+      <span>Simple Overview · U.S. Bank AI Hackathon 2026</span>
+    </div>
+  </div>
+</div>
+
+<!-- ================= PAGE 1: THE PROBLEM & SOLUTION ================= -->
+<div class="page">
+  <div>
+    <h2>1. The Problem and the Solution</h2>
+    <p>Fraud analysts today have to do too many manual steps for every single alert:</p>
+
+    <div class="grid">
+      <div class="card">
+        <h3>1. Check Transaction Data</h3>
+        <p>Look up the amount, store name, city, time, IP address, and proxy status.</p>
+      </div>
+      <div class="card">
+        <h3>2. Check Customer History</h3>
+        <p>Look at what the customer normally spends and where they usually shop.</p>
+      </div>
+      <div class="card">
+        <h3>3. Search Policy Documents</h3>
+        <p>Read through long PDF policy files to find the exact rules and limits.</p>
+      </div>
+      <div class="card">
+        <h3>4. Make a Decision</h3>
+        <p>Decide whether to let the transaction pass, review it, or freeze the card.</p>
+      </div>
+    </div>
+
+    <div class="note">
+      <strong>Our Goal:</strong> Replace these separate manual steps with one simple screen that does the heavy lifting in seconds.
+    </div>
+
+    <h3>What Our App Gives the Analyst:</h3>
+    <ul>
+      <li><strong>Complete Overview:</strong> Shows transaction details and customer profile side by side.</li>
+      <li><strong>Automatic Risk Signals:</strong> Highlights red flags like proxy IPs or sudden large amounts.</li>
+      <li><strong>Accurate Risk Score:</strong> Calculates an exact score from 0 to 100.</li>
+      <li><strong>Official Policy Citations:</strong> Shows the exact rule section and page number from the bank policy.</li>
+      <li><strong>Clear AI Summary:</strong> Writes a short, plain-English summary explaining the risk.</li>
+      <li><strong>1-Click Actions:</strong> Buttons to Freeze Card, Notify Customer, or Escalate.</li>
+    </ul>
+  </div>
+
+  <div class="footer">
+    <span>RiskManagement · Simple Overview</span>
+    <span>Page 1: Problem and Solution</span>
+  </div>
+</div>
+
+<!-- ================= PAGE 2: HOW THE APP WORKS ================= -->
+<div class="page">
+  <div>
+    <h2>2. How the App Works</h2>
+    <p>The app follows five simple steps whenever a transaction is investigated:</p>
+
+    <div class="flow">
+      <div>1. Choose<br>Transaction</div>
+      <span class="arrow">&rarr;</span>
+      <div>2. Read Database<br>and History</div>
+      <span class="arrow">&rarr;</span>
+      <div>3. Search Policy<br>with RAG</div>
+      <span class="arrow">&rarr;</span>
+      <div>4. Calculate<br>Risk Score</div>
+      <span class="arrow">&rarr;</span>
+      <div>5. Show Summary<br>and Actions</div>
+    </div>
+
+    <h3>Simple Step-by-Step Flow:</h3>
+    <ol>
+      <li>The analyst selects a transaction from the list (like <code>TXN_99812</code>).</li>
+      <li>The backend reads the transaction and customer history from SQLite.</li>
+      <li>It checks risk signals: Is the amount unusually high? Is it a proxy IP? Did location change impossibly fast?</li>
+      <li>ChromaDB searches the policy PDF to find matching bank rules.</li>
+      <li>The app calculates the risk score (0 to 100) using policy rules.</li>
+      <li>The AI writes a plain-English summary and displays 1-click action buttons.</li>
+    </ol>
+
+    <h3>Two Quick Examples:</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Transaction</th>
+          <th>What Happened</th>
+          <th>Result & Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>TXN_99812</code></td>
+          <td>$1,450 purchase in the UK using a Tor proxy IP, just 1 hour after a card swipe in the USA.</td>
+          <td><strong class="high">High Risk (Score: 100)</strong><br>Action: Immediate Card Freeze</td>
+        </tr>
+        <tr>
+          <td><code>TXN_998112</code></td>
+          <td>$42 purchase on Amazon from customer's home country using a normal home internet IP.</td>
+          <td><strong class="low">Low Risk (Score: 15)</strong><br>Action: Normal Monitoring</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="note">
+      <strong>Important Note:</strong> The 0 to 100 risk score is calculated by math and policy rules. The AI only writes the summary; it does not guess the score.
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>RiskManagement · Simple Overview</span>
+    <span>Page 2: How the App Works</span>
+  </div>
+</div>
+
+<!-- ================= PAGE 3: TOOLS USED ================= -->
+<div class="page">
+  <div>
+    <h2>3. Tools Used to Build the App</h2>
+    <p>We chose simple, dependable, and fast technologies to make sure the app is reliable and easy to run anywhere.</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Tool</th>
+          <th>What It Does</th>
+          <th>Why We Used It</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Python</strong></td>
+          <td>Main programming language</td>
+          <td>Simple, powerful, and connects AI, data, and web easily.</td>
+        </tr>
+        <tr>
+          <td><strong>Flask</strong></td>
+          <td>Web server and API</td>
+          <td>Lightweight and fast at sending data to the browser.</td>
+        </tr>
+        <tr>
+          <td><strong>SQLite</strong></td>
+          <td>Local database</td>
+          <td>Stores customer profiles and transactions with zero setup.</td>
+        </tr>
+        <tr>
+          <td><strong>ChromaDB</strong></td>
+          <td>Vector database (RAG)</td>
+          <td>Searches the bank policy PDF by topic and meaning.</td>
+        </tr>
+        <tr>
+          <td><strong>PyPDF</strong></td>
+          <td>PDF text reader</td>
+          <td>Extracts clean text directly from the policy PDF.</td>
+        </tr>
+        <tr>
+          <td><strong>Google Gemini & OpenAI</strong></td>
+          <td>AI language models</td>
+          <td>Writes the clear executive summary from facts and policy.</td>
+        </tr>
+        <tr>
+          <td><strong>Python Fallback</strong></td>
+          <td>Offline backup engine</td>
+          <td>Makes sure summaries work even with no internet or API key.</td>
+        </tr>
+        <tr>
+          <td><strong>HTML, CSS & JavaScript</strong></td>
+          <td>User interface (UI)</td>
+          <td>Creates a clean, modern, and responsive analyst dashboard.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Why This Tech Stack is Great:</h3>
+    <div class="grid">
+      <div class="card">
+        <h3>Fast and Local</h3>
+        <p>Runs smoothly on a single laptop without heavy cloud setup.</p>
+      </div>
+      <div class="card">
+        <h3>Zero Hallucinations</h3>
+        <p>RAG connects every answer to the official bank policy text.</p>
+      </div>
+      <div class="card">
+        <h3>100% Reliable</h3>
+        <p>Automatic fallback ensures the app never crashes during a demo.</p>
+      </div>
+      <div class="card">
+        <h3>Human Stays in Control</h3>
+        <p>The app recommends actions, but the analyst makes the final call.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>RiskManagement · Simple Overview</span>
+    <span>Page 3: Technologies Used</span>
+  </div>
+</div>
+
+<!-- ================= PAGE 4: HOW WE RATE ALERTS ================= -->
+<div class="page">
+  <div>
+    <h2>4. How We Rate Alerts (Risk Scoring)</h2>
+    <p>Every transaction receives a <strong>Risk Score from 0 to 100</strong> based on clear, transparent rules.</p>
+
+    <h3>Risk Point Calculation Rules:</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Risk Signal</th>
+          <th>Condition</th>
+          <th>Points Added</th>
+          <th>Bank Policy Section</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Extreme Amount Anomaly</strong></td>
+          <td>Amount is 10x or more of customer average</td>
+          <td><strong>+25 pts</strong></td>
+          <td>Section 6.2 (Page 5)</td>
+        </tr>
+        <tr>
+          <td><strong>Large Amount Anomaly</strong></td>
+          <td>Amount is 5x or more of customer average</td>
+          <td><strong>+18 pts</strong></td>
+          <td>Section 6.2 (Page 5)</td>
+        </tr>
+        <tr>
+          <td><strong>Unusual Amount</strong></td>
+          <td>Amount is 2x or more of customer average</td>
+          <td><strong>+10 pts</strong></td>
+          <td>Section 6.2 (Page 5)</td>
+        </tr>
+        <tr>
+          <td><strong>High-Value Proxy / Tor IP</strong></td>
+          <td>Proxy IP detected AND amount &gt; $500</td>
+          <td><strong>+30 pts</strong></td>
+          <td>Section 5.3 (Page 4)</td>
+        </tr>
+        <tr>
+          <td><strong>Low-Value Proxy IP</strong></td>
+          <td>Proxy IP detected AND amount &le; $500</td>
+          <td><strong>+15 pts</strong></td>
+          <td>Section 5.3 (Page 4)</td>
+        </tr>
+        <tr>
+          <td><strong>International Transaction</strong></td>
+          <td>Store country is different from home country</td>
+          <td><strong>+10 pts</strong></td>
+          <td>Section 4.1 (Page 3)</td>
+        </tr>
+        <tr>
+          <td><strong>Online Purchase (CNP)</strong></td>
+          <td>Card is not physically present</td>
+          <td><strong>+5 pts</strong></td>
+          <td>Section 4.2 (Page 3)</td>
+        </tr>
+        <tr>
+          <td><strong>Impossible Travel Velocity</strong></td>
+          <td>Card swipe in another continent within 2 hours</td>
+          <td><strong>+70 pts</strong></td>
+          <td>Section 4.2 (Page 3)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Three Risk Tiers and Required Actions:</h3>
+    <div class="grid" style="grid-template-columns: 1fr 1fr 1fr;">
+      <div class="score-card">
+        <strong class="low">0 – 39</strong>
+        <span class="low">LOW RISK</span>
+        <p class="small">Normal activity.<br><strong>Action:</strong> Standard monitoring.</p>
+      </div>
+      <div class="score-card">
+        <strong class="med">40 – 79</strong>
+        <span class="med">MEDIUM RISK</span>
+        <p class="small">Unusual pattern.<br><strong>Action:</strong> Secondary fraud review.</p>
+      </div>
+      <div class="score-card">
+        <strong class="high">80 – 100</strong>
+        <span class="high">HIGH RISK</span>
+        <p class="small">Critical violation.<br><strong>Action:</strong> Immediate card freeze.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>RiskManagement · Simple Overview</span>
+    <span>Page 4: How We Rate Alerts</span>
+  </div>
+</div>
+
+<!-- ================= PAGE 5: DEMO & BUSINESS VALUE ================= -->
+<div class="page">
+  <div>
+    <h2>5. Presentation Demo and Business Value</h2>
+
+    <h3>Simple 5-Step Demo for Judges:</h3>
+    <ol>
+      <li>Start the app with <code>python app.py</code> and open <code>http://127.0.0.1:5000</code>.</li>
+      <li>Click on <strong><code>TXN_99812</code></strong> (High Risk): Watch the score reach 100 and read the proxy and velocity findings.</li>
+      <li>Click on <strong><code>TXN_998112</code></strong> (Low Risk): Compare with a clean $42 Amazon purchase (Score: 15).</li>
+      <li>Look at the <strong>Live Execution Terminal</strong> to see SQL queries, policy searches, and AI steps in real time.</li>
+      <li>Click <strong>"Freeze Card"</strong>: See the card status update to Frozen instantly in the database.</li>
+    </ol>
+
+    <h3>Why This is Valuable to the Bank:</h3>
+    <div class="grid">
+      <div class="card">
+        <h3>70% Faster Investigations</h3>
+        <p>Analysts see all information in one place instead of checking 4 different tools.</p>
+      </div>
+      <div class="card">
+        <h3>Consistent Decisions</h3>
+        <p>Every transaction is evaluated using the exact same transparent rules.</p>
+      </div>
+      <div class="card">
+        <h3>Full Policy Traceability</h3>
+        <p>Every alert cites the exact policy section and PDF page number.</p>
+      </div>
+      <div class="card">
+        <h3>Instant Remediation</h3>
+        <p>Analysts can freeze compromised cards with a single click before more fraud happens.</p>
+      </div>
+    </div>
+
+    <div class="note">
+      <strong>Final Takeaway:</strong> This project transforms fraud investigation from "searching for clues across multiple systems" into "making quick, explainable, and confident decisions."
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>RiskManagement · Simple Overview</span>
+    <span>Page 5: Demo and Business Value</span>
+  </div>
+</div>
+
+</body>
+</html>
